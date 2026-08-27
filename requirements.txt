@@ -1,0 +1,21 @@
+﻿# Thales 6G Manufacturing Analytics Platform - Dependencies
+# Python 3.10+ required
+
+# Data Processing
+pandas>=2.0
+numpy>=1.24
+scipy>=1.10
+statsmodels>=0.14
+
+# Dashboard Framework
+streamlit>=1.28
+
+# Visualization
+plotly>=5.14
+matplotlib>=3.7
+seaborn>=0.12
+altair>=5.0
+
+# Testing
+pytest>=7.0
+hypothesis>=6.0
