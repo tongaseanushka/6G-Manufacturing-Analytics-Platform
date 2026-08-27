@@ -1,6 +1,10 @@
-﻿# Thales 6G Manufacturing Analytics Platform
+# Thales 6G Manufacturing Analytics Platform
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://6g-manufacturing-analytics-platform-5hcf4d6vsmzskvftavb9nd.streamlit.app/)
 
 > A full-stack data analytics platform that investigates the statistical relationship between **6G network performance** and **smart manufacturing efficiency** using 100,000 rows of industrial telemetry data.
+
+**🔴 Live Dashboard:** [Click here to view the deployed application](https://6g-manufacturing-analytics-platform-5hcf4d6vsmzskvftavb9nd.streamlit.app/)
 
 ---
 
