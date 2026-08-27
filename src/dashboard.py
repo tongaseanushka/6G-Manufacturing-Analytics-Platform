@@ -759,11 +759,11 @@ def _generate_synthetic_dataset(output_path: Path) -> None:
     packet_loss = rng.exponential(scale=1.5, size=n).clip(0, 10)
 
     # Efficiency inversely correlated with latency (weakly, as in real data)
-    eff_probs = np.where(latency > 50, [0.85, 0.10, 0.05],
-                np.where(latency > 20, [0.70, 0.20, 0.10],
-                                       [0.55, 0.30, 0.15]))
+    eff_probs = np.where((latency > 50)[:, None], [0.85, 0.10, 0.05],
+                np.where((latency > 20)[:, None], [0.70, 0.20, 0.10],
+                                                  [0.55, 0.30, 0.15]))
     efficiency = np.array(
-        [rng.choice(["Low", "Medium", "High"], p=eff_probs[:, i]) for i in range(n)]
+        [rng.choice(["Low", "Medium", "High"], p=eff_probs[i, :]) for i in range(n)]
     )
 
     error_rate = (
