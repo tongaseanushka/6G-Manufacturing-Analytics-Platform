@@ -737,6 +737,71 @@ def render_sidebar(df: pd.DataFrame) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Synthetic dataset generator (used when real CSV is absent, e.g. Streamlit Cloud)
+# ---------------------------------------------------------------------------
+
+
+def _generate_synthetic_dataset(output_path: Path) -> None:
+    """Generate a reproducible 100,000-row synthetic dataset and save to *output_path*.
+
+    The schema matches the real ``Thales_Group_Manufacturing.csv`` so all
+    validation, KPI computation, and visualisations work identically.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    rng = np.random.default_rng(42)
+    n = 100_000
+
+    dates = (pd.date_range("2025-01-01", periods=69).tolist() * (n // 69 + 1))[:n]
+    timestamps = pd.Series(dates).dt.strftime("%d-%m-%Y").tolist()
+
+    # Latency: mostly medium, skewed toward low-quality to match real distribution
+    latency = rng.gamma(shape=3.0, scale=15.0, size=n).clip(5, 150)
+    packet_loss = rng.exponential(scale=1.5, size=n).clip(0, 10)
+
+    # Efficiency inversely correlated with latency (weakly, as in real data)
+    eff_probs = np.where(latency > 50, [0.85, 0.10, 0.05],
+                np.where(latency > 20, [0.70, 0.20, 0.10],
+                                       [0.55, 0.30, 0.15]))
+    efficiency = np.array(
+        [rng.choice(["Low", "Medium", "High"], p=eff_probs[:, i]) for i in range(n)]
+    )
+
+    error_rate = (
+        0.005
+        + 0.0003 * latency
+        + 0.002 * packet_loss
+        + rng.normal(0, 0.005, n)
+    ).clip(0.001, 0.05)
+
+    defect_rate = (
+        0.004
+        + 0.0002 * latency
+        + 0.0015 * packet_loss
+        + rng.normal(0, 0.004, n)
+    ).clip(0.001, 0.05)
+
+    df = pd.DataFrame({
+        "Timestamp": timestamps,
+        "Machine_ID": ["M" + str(i % 50) for i in range(n)],
+        "Network_Latency_ms": latency.round(2),
+        "Packet_Loss_%": packet_loss.round(4),
+        "Efficiency_Status": efficiency,
+        "Production_Speed": rng.uniform(50, 150, n).round(2),
+        "Error_Rate": error_rate.round(6),
+        "Quality_Control_Defect_Rate": defect_rate.round(6),
+        "Operation_Mode": rng.choice(["Active", "Idle", "Maintenance"],
+                                     p=[0.70, 0.20, 0.10], size=n),
+        "Sensor_Temp_C": rng.uniform(20, 80, n).round(1),
+        "Vibration_Hz": rng.uniform(10, 100, n).round(2),
+        "Power_Consumption_kW": rng.uniform(5, 50, n).round(2),
+        "Signal_Strength_dBm": rng.uniform(-90, -30, n).round(1),
+        "Throughput_Mbps": rng.uniform(100, 10000, n).round(1),
+    })
+
+    df.to_csv(output_path, index=False)
+
+
+# ---------------------------------------------------------------------------
 # Main application
 # ---------------------------------------------------------------------------
 
@@ -753,17 +818,14 @@ def main() -> None:
     csv_path = str(DEFAULT_CSV_PATH)
 
     if not Path(csv_path).exists():
-        st.warning(
-            f"Dataset not found at `{csv_path}`. "
-            "Please upload the `Thales_Group_Manufacturing.csv` file below."
+        # Auto-generate synthetic dataset so the app works out-of-the-box on
+        # Streamlit Cloud (or any environment without the real CSV).
+        with st.spinner("Generating synthetic demo dataset (100,000 rows)…"):
+            _generate_synthetic_dataset(Path(csv_path))
+        st.info(
+            "**Demo mode:** Running on auto-generated synthetic data. "
+            "To use real data, upload your CSV using the uploader in the sidebar."
         )
-        uploaded = st.file_uploader("Upload Dataset CSV", type=["csv"])
-        if uploaded is None:
-            st.stop()
-        import tempfile
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
-            tmp.write(uploaded.read())
-            csv_path = tmp.name
 
     with st.spinner("Loading and validating dataset…"):
         try:
